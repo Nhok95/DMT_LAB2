@@ -1,0 +1,20 @@
+# Connection
+mongosh "mongodb://dtim.essi.upc.edu:27017/DBkleber_reyes
+
+# See db
+> db 
+
+# See al dbs 
+> show dbs 
+
+# Use a db 
+> use <dbName>
+
+# See collections
+> show collections
+
+# show all elements from a collections
+> db.<collectionName>.find()
+
+# show the first elements of a collections
+> db.<collectionName>.findOne()
