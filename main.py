@@ -4,6 +4,7 @@ from datetime import datetime
 from turtle import color
 import pandas as pd
 import numpy as np
+import seaborn as sns
 
 # Paths
 from pathlib import Path
@@ -18,18 +19,17 @@ import geopandas as gpd
 from shapely.geometry import LineString, Point
 
 ### CONSTANTS ###
-TEST = True # If True, some pieces of code will no be executed, just for testing. Default will be False
+TEST = False # If True, some pieces of code will no be executed, just for testing. Default will be False
 
 ROOT = Path.cwd()
-#HOST = 'dtim.essi.upc.edu'
-#PORT = 27017
-#DBNAME = "DBkleber_reyes"
-
 DataDir = ROOT / "Data"
 
 # We generate here the folders
 if not os.path.exists(DataDir / "Cleaned"):
     os.mkdir(DataDir / "Cleaned")
+
+if not os.path.exists(DataDir / "Normalized"):
+    os.mkdir(DataDir / "Normalized")
 
 if not os.path.exists(DataDir / "Shapefiles"):
     os.mkdir(DataDir / "Shapefiles")
@@ -235,7 +235,8 @@ if (not TEST):
                 days = [x for x in days if x > 0]
             
             aux = tempAgg[(tempAgg['day'].isin(days)) & (tempAgg['partOfTheDay'] == part)]
-            tempWithYDay['temperature'] = aux['temperature'].sum() / aux.shape[0]
+            #tempWithYDay['temperature'][index] = aux['temperature'].sum() / aux.shape[0]
+            tempWithYDay.loc[index]['temperature']= aux['temperature'].sum() / aux.shape[0]
 
     tempWithYDay['temperature'] = tempWithYDay['temperature'].round(decimals=6)
 
@@ -248,7 +249,8 @@ if (not TEST):
                 days = [x for x in days if x > 0]
             
             aux = chlorAgg[chlorAgg['day'].isin(days)]
-            chlorWithYDay['chlor_a'] = aux['chlor_a'].sum() / aux.shape[0]
+            #chlorWithYDay['chlor_a'][index] = aux['chlor_a'].sum() / aux.shape[0]
+            chlorWithYDay.loc[index]['chlor_a'] = aux['chlor_a'].sum() / aux.shape[0]
 
     chlorWithYDay['chlor_a'] = chlorWithYDay['chlor_a'].round(decimals=2)
 
@@ -339,17 +341,18 @@ I will use the following DF generated in the previous section:
     * fishingDF
 
 '''
-ais_res = pd.read_csv(DataDir / "Cleaned/ais_resample.csv") 
-clean_temperatureDF = pd.read_csv(DataDir / "Cleaned/clean_temperatureDF.csv") 
-clean_chlorophyllDF= pd.read_csv(DataDir / "Cleaned/clean_chlorophyllDF.csv") 
+if (not TEST):
+    ais_res = pd.read_csv(DataDir / "Cleaned/ais_resample.csv") 
+    clean_temperatureDF = pd.read_csv(DataDir / "Cleaned/clean_temperatureDF.csv") 
+    clean_chlorophyllDF= pd.read_csv(DataDir / "Cleaned/clean_chlorophyllDF.csv") 
 
-print(clean_temperatureDF.head())
-print()
-print(clean_chlorophyllDF.head())
-print()
-print(ais_res.head())
-print()
-print(fishingDF.head())
+    print(clean_temperatureDF.head())
+    print()
+    print(clean_chlorophyllDF.head())
+    print()
+    print(ais_res.head())
+    print()
+    print(fishingDF.head())
 
 ###################################
 ### Normalize to the same grid ###
@@ -391,31 +394,42 @@ What happens with a difference higher than 0.5 (but below 1.0)
 
 Since it seems the mapping works we can continue with the normalization piece of code.
 '''
-clean_temperatureDF['normLat'] = abs(-90 - clean_temperatureDF.latitude) // 0.5
-clean_temperatureDF['normLon'] = abs(-180 - clean_temperatureDF.longitude) // 0.5
+if (not TEST):
+    norm_temperatureDF = clean_temperatureDF.copy()
+    norm_temperatureDF['normLat'] = abs(-90 - norm_temperatureDF.latitude) // 0.5
+    norm_temperatureDF['normLon'] = abs(-180 - norm_temperatureDF.longitude) // 0.5
 
-clean_chlorophyllDF['normLat'] = abs(-90 - clean_chlorophyllDF.latitude) // 0.5
-clean_chlorophyllDF['normLon'] = abs(-180 - clean_chlorophyllDF.longitude) // 0.5
+    norm_chlorophyllDF = clean_chlorophyllDF.copy()
+    norm_chlorophyllDF['normLat'] = abs(-90 - norm_chlorophyllDF.latitude) // 0.5
+    norm_chlorophyllDF['normLon'] = abs(-180 - norm_chlorophyllDF.longitude) // 0.5
 
-ais_res['normLat'] = abs(-90 - ais_res.Latitude) // 0.5
-ais_res['normLon'] = abs(-180 - ais_res.Longitude) // 0.5
+    norm_aisDF = ais_res.copy()
+    norm_aisDF['normLat'] = abs(-90 - norm_aisDF.Latitude) // 0.5
+    norm_aisDF['normLon'] = abs(-180 - norm_aisDF.Longitude) // 0.5
 
-fishingDF['normLat'] = abs(-90 - fishingDF.Latitude) // 0.5
-fishingDF['normLon'] = abs(-180 - fishingDF.Longitude) // 0.5
+    norm_fishingDF = fishingDF.copy()
+    norm_fishingDF['normLat'] = abs(-90 - norm_fishingDF.Latitude) // 0.5
+    norm_fishingDF['normLon'] = abs(-180 - norm_fishingDF.Longitude) // 0.5
 
 
-print("\nThe datasets now contains a new pair or columns that represents the normalized coordinates:")
-print(clean_temperatureDF.head())
-print()
-print(clean_chlorophyllDF.head())
-print()
-print(ais_res.head())
-print()
-print(fishingDF.head())
+    print("\nThe datasets now contains a new pair or columns that represents the normalized coordinates:")
+    print(norm_temperatureDF.head())
+    print()
+    print(norm_chlorophyllDF.head())
+    print()
+    print(norm_aisDF.head())
+    print()
+    print(norm_fishingDF.head())
 
 '''
 We can create a new set of file in order to store these normalized datasets
 '''
+
+if (not TEST):
+    norm_temperatureDF.to_csv(DataDir / "Normalized/norm_temperatureDF.csv", index=False)
+    norm_chlorophyllDF.to_csv(DataDir / "Normalized/norm_chlorophyllDF.csv", index=False)
+    norm_aisDF.to_csv(DataDir / "Normalized/norm_aisDF.csv", index=False)
+    norm_fishingDF.to_csv(DataDir / "Normalized/norm_fishingDF.csv", index=False)
 
 
 #################################
@@ -424,6 +438,96 @@ We can create a new set of file in order to store these normalized datasets
 print("\n#################################")
 print("##      DATA INTEGRATION       ##")
 print("#################################")
+print()
+
+if (not TEST):
+    norm_temperatureDF = pd.read_csv(DataDir / "Normalized/norm_temperatureDF.csv")
+    norm_chlorophyllDF = pd.read_csv(DataDir / "Normalized/norm_chlorophyllDF.csv")
+    norm_aisDF = pd.read_csv(DataDir / "Normalized/norm_aisDF.csv")
+    norm_fishingDF = pd.read_csv(DataDir / "Normalized/norm_fishingDF.csv")
+
+    print(norm_temperatureDF.head())
+    print()
+    print(norm_chlorophyllDF.head())
+    print()
+    print(norm_aisDF.head())
+    print()
+    print(norm_fishingDF.head())
+
+###################################
+### Generating geoPandas DFs ###
+print("\n### GENERATING GEOPANDAS DFs ###")
+print()
+
+'''
+We only need temperature, chlorophyll and fishing datasets.
+I will convert them into geoDataFrames using the normalized latitude and longitude coordinates.
+
+I remove the coordinates columns (both original and standard), but only to keep the datasets
+as small as possible.
+
+I simplify the temperature dataframe by combining the day and night temperatures.
+'''
+if (not TEST):
+    norm_tempDF_simply = norm_temperatureDF.groupby(by=["time","normLat","normLon"]).mean().reset_index()
+    norm_tempDF_simply
+
+    geoFishingDF = gpd.GeoDataFrame(norm_fishingDF, 
+                                    geometry=gpd.points_from_xy(norm_fishingDF.normLat, norm_fishingDF.normLon),
+                                    crs = "EPSG:3857")
+    geoFishingDF = geoFishingDF[["BoatName", "BoatID", "Day", "Kg", "Duration", "Lines", "Temperature", "geometry"]]
+
+    geoTemperatureDF = gpd.GeoDataFrame(norm_tempDF_simply, 
+                                    geometry=gpd.points_from_xy(norm_tempDF_simply.normLat, norm_tempDF_simply.normLon),
+                                    crs = "EPSG:3857")
+    geoTemperatureDF = geoTemperatureDF[["time", "temperature", "geometry"]]
+
+    geoChlorophyllDF = gpd.GeoDataFrame(norm_chlorophyllDF, 
+                                    geometry=gpd.points_from_xy(norm_chlorophyllDF.normLat, norm_chlorophyllDF.normLon),
+                                    crs = "EPSG:3857")
+    geoChlorophyllDF = geoChlorophyllDF[["time", "chlor_a", "geometry"]]
+
+
+    print("The geoDataFrame are the following:")
+
+    print(geoFishingDF.head()) # 644 x 7
+    print()
+    print(geoTemperatureDF.head()) # 218400 x 4
+    print()
+    print(geoChlorophyllDF.head()) # 218400 x 3
+
+
+    print("\nResulting geoDF from merging temperature dataset and chlorophyll dataset:")
+    geoFeatures = geoTemperatureDF.copy()
+    geoFeatures = geoFeatures.merge(geoChlorophyllDF, on=["time", "geometry"])
+
+    print(geoFeatures.head())
+
+    print("\nResulting geoDF from applying a join between the fishing dataset and the previous one:")
+    geoFishingDF_in = geoFishingDF.copy()
+    geoFishingDF_in = geoFishingDF_in.sjoin(geoFeatures, how="inner", predicate = "intersects")
+
+    geoFishingDF_in["temperature"] = geoFishingDF_in["temperature"] - 273.15 # Normalize to Celsius scale
+    print(geoFishingDF_in.head())
+
+    '''
+    In this last step I will filter only the data in which "day" and "time" coincide
+    '''
+
+    print("\nDefinitive dataset:")
+    geoFishingDF_filtered = geoFishingDF_in[geoFishingDF_in["Day"] == geoFishingDF_in["time"]]
+    geoFishingDF_filtered = geoFishingDF_filtered[["BoatName", "BoatID", "Day", "Kg", "Duration", "Temperature", "temperature", "chlor_a", "geometry"]]
+    geoFishingDF_filtered.sort_values(by=["BoatID", "Day"], inplace=True)
+    geoFishingDF_filtered.reset_index(drop=True, inplace=True)
+    print(geoFishingDF_filtered.head()) #644 rows
+
+
+'''
+As usual, I save the dataset.
+'''
+if (not TEST):
+    geoFishingDF_filtered.to_csv(DataDir / "Normalized/integratedDF.csv", index=False)
+    geoFishingDF_filtered.to_file(DataDir / "Shapefiles/integratedDF.shp")
 
 #########################
 ##      QUERYING       ##
@@ -445,22 +549,23 @@ linestrings from the points defined by latitude and longitude
 print("\n### COMPARING TRAJECTORIES ###")
 print()
 
-aisDF = aisDF.sort_values(by=["BoatID", "Date"]).reset_index(drop=True)
+if (not TEST):
+    aisDF = aisDF.sort_values(by=["BoatID", "Date"]).reset_index(drop=True)
 
-# Create a geoDataframe with points
-geoAisDF = gpd.GeoDataFrame(aisDF, 
-                        geometry=gpd.points_from_xy(aisDF.Latitude, aisDF.Longitude),
-                        crs = "EPSG:3857")
+    # Create a geoDataframe with points
+    geoAisDF = gpd.GeoDataFrame(aisDF, 
+                            geometry=gpd.points_from_xy(aisDF.Latitude, aisDF.Longitude),
+                            crs = "EPSG:3857")
 
-geoFishingDF = gpd.GeoDataFrame(fishingDF, 
-                                geometry=gpd.points_from_xy(fishingDF.Latitude, fishingDF.Longitude),
-                                crs = "EPSG:3857")
+    geoFishingDF = gpd.GeoDataFrame(fishingDF, 
+                                    geometry=gpd.points_from_xy(fishingDF.Latitude, fishingDF.Longitude),
+                                    crs = "EPSG:3857")
 
-print("Original ais and fishing datasets as GeoPandas DataFrames:")
-print(geoAisDF.head())
-print()
-print(geoFishingDF.head())
-print()
+    print("Original ais and fishing datasets as GeoPandas DataFrames:")
+    print(geoAisDF.head())
+    print()
+    print(geoFishingDF.head())
+    print()
 
 '''
 I tried to use dissolve() in order to aggregate the geometries, but the result geometry is an unordered set of point 
@@ -469,20 +574,21 @@ I tried to use dissolve() in order to aggregate the geometries, but the result g
 For this reason I will compare only the Mason trajectory since the other comparations will be equivalent.
 '''
 
-boatId = 111 # Mason Id
-masonLineAis = []
+if (not TEST):
+    boatId = 111 # Mason Id
+    masonLineAis = []
 
-geoAisBoat = geoAisDF[geoAisDF["BoatID"] == boatId] # Sub geo dataframe
-for i, _ in geoAisBoat.iterrows():
-    masonLineAis.append(geoAisBoat['geometry'][i])
-masonLinestringAis = LineString([x for x in masonLineAis])
+    geoAisBoat = geoAisDF[geoAisDF["BoatID"] == boatId] # Sub geo dataframe
+    for i, _ in geoAisBoat.iterrows():
+        masonLineAis.append(geoAisBoat['geometry'][i])
+    masonLinestringAis = LineString([x for x in masonLineAis])
 
-masonLineFishing = []
+    masonLineFishing = []
 
-geoFishingBoat = geoFishingDF[geoFishingDF["BoatID"] == boatId] # Sub geo dataframe
-for i, _ in geoFishingBoat.iterrows():
-    masonLineFishing.append(geoFishingBoat['geometry'][i])
-masonLinestringFishing = LineString([x for x in masonLineFishing])
+    geoFishingBoat = geoFishingDF[geoFishingDF["BoatID"] == boatId] # Sub geo dataframe
+    for i, _ in geoFishingBoat.iterrows():
+        masonLineFishing.append(geoFishingBoat['geometry'][i])
+    masonLinestringFishing = LineString([x for x in masonLineFishing])
 
 
 
@@ -523,18 +629,19 @@ I has to highlight that the ais dataset also has some gaps, and for this reason 
 different "trajectory" than the generated with the Linestring (remember that it puts straight lines between points).
 '''
 
-print("Mason trajectory length according to Fishing dataset: {}".format(masonLinestringFishing.length))
-print("Mason trajectory lengt haccording to AIS dataset: {}".format(masonLinestringAis.length))
+if (not TEST):
+    print("Mason trajectory length according to Fishing dataset: {}".format(masonLinestringFishing.length))
+    print("Mason trajectory lengt haccording to AIS dataset: {}".format(masonLinestringAis.length))
 
-print("\nMason number of coordinates according to Fishing dataset: {}".format(len(masonLinestringFishing.coords)))
-print("Mason number of coordinates according AIS dataset: {}".format(len(masonLinestringAis.coords)))
+    print("\nMason number of coordinates according to Fishing dataset: {}".format(len(masonLinestringFishing.coords)))
+    print("Mason number of coordinates according AIS dataset: {}".format(len(masonLinestringAis.coords)))
 
-print("\nMason representative point according to Fishing dataset: {}".format(masonLinestringFishing.representative_point()))
-print("Mason representative point according to AIS dataset: {}".format(masonLinestringAis.representative_point()))
-print("Mason difference of representative points: {}".format(
-        (masonLinestringFishing.representative_point()).distance(masonLinestringAis.representative_point())))
+    print("\nMason representative point according to Fishing dataset: {}".format(masonLinestringFishing.representative_point()))
+    print("Mason representative point according to AIS dataset: {}".format(masonLinestringAis.representative_point()))
+    print("Mason difference of representative points: {}".format(
+            (masonLinestringFishing.representative_point()).distance(masonLinestringAis.representative_point())))
 
-print("\nAre trajectories equals? {}".format(masonLinestringFishing.equals(masonLinestringAis)))
+    print("\nAre trajectories equals? {}".format(masonLinestringFishing.equals(masonLinestringAis)))
 
 '''
 We can realize that the number of coordinates and the length of every trajectory is shorter in the fishing dataset, 
@@ -546,27 +653,58 @@ Thanks to the ais dataset we can know the real path every boat did (that is not 
 fishing dataset). 
 '''
 
+###################################
+### Requested Queries ###
+print("\n### REQUESTED QUERIES ###")
+print()
+
+geoFishingDF_filtered = gpd.read_file(DataDir / "Shapefiles/integratedDF.shp")
+geoFishingDF_filtered.rename(columns={'Temperatur':'original_temp', 'temperat_1': 'temp'}, inplace=True)
+
+'''
+We generate a new column 'month' that represents Month from the Day column
+'''
+
+geoFishingDF_filtered['month'] = pd.DatetimeIndex(geoFishingDF_filtered['Day']).month
+geoFishingDF_filtered
+
+print(geoFishingDF_filtered.head())
+
+aggregatedDF = geoFishingDF_filtered.dissolve(by=["BoatID", "month"], aggfunc='mean')
+
+print("\nWhat is the distance travelled by each vessel, per month:")
+
+'''
+We can use the piece of code below in order to perform the query.
+We can change the boolean condicion to obtain another month or another boat.
+'''
+
+Boat = geoFishingDF_filtered[(geoFishingDF_filtered["BoatID"] == 111) & (geoFishingDF_filtered["month"] == 1)]
+BoatLS = LineString([x for x in Boat.geometry])
+print(BoatLS.length)
 
 
+print("\nWhat is the quantity of fish (in kg) caught by each vessel, per month: ")
 
 
+print(aggregatedDF[["Kg"]])
 
 
+print("\nFind Correlation between the quantity of fish caught and the temperature/chlorophyll: ")
 
+corr = geoFishingDF_filtered[["Kg","original_temp", "temp", "chlor_a"]].corr()
+matrix = np.triu(corr)
+print(corr)
 
+sns.heatmap(corr, annot=True, cmap="Reds", mask=matrix)
+plt.show()
 
+'''
+We can see that the kg of fish is positive correlated with the 3 variables, but the values are very low
+(less than 0.1). I can highlight that the original temperature is strongly correlated with the imputed 
+temperature from the temperature dataset.
 
+If we perform a more complex imputation system, probably we can obtain more interesting results.
+'''
 
-#pd.get_option('display.max_columns')
-#db = mongoDB(HOST, PORT, DBNAME)
-    #client = MongoClient()
-
-#client = MongoClient('localhost', 27017)
-#client = MongoClient('dtim.essi.upc.edu', 27017)
-
-
-#db = client.DBkleber_reyes
-
-#countries = db.country
-
-#pprint.pprint(countries.find_one())
+###################################
